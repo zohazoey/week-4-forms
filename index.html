@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 4 - Forms, Validation & Feedback</title>
+<style>
+  *{box-sizing:border-box;font-family:Inter,system-ui,sans-serif}
+  body{background:#0f172a;color:#fff;display:flex;justify-content:center;padding:20px;margin:0}
+  .card{background:#1e293b;width:100%;max-width:560px;padding:28px;border-radius:16px}
+  h1{font-size:22px;margin:0 0 6px} p.sub{color:#94a3b8;font-size:14px;margin:0 0 20px}
+  label{display:block;font-size:13px;font-weight:600;margin:18px 0 6px}
+  input,select,textarea{width:100%;padding:12px;border:1px solid #334155;background:#0f172a;color:#fff;border-radius:10px;outline:none}
+  input:focus,select:focus,textarea:focus{border-color:#22d3ee}
+  input.error,select.error,textarea.error{border-color:#ef4444}
+  .err{color:#fca5a5;font-size:12px;margin-top:5px;display:none}
+  .err.show{display:block}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .hint{font-size:11px;color:#94a3b8;margin-top:4px}
+  .check{display:flex;gap:10px;align-items:flex-start;margin-top:18px;font-size:13px}
+  .check input{width:18px;height:18px;margin-top:2px}
+  button{width:100%;margin-top:22px;padding:14px;border:0;border-radius:10px;background:#06b6d4;color:#fff;font-weight:700;font-size:15px;cursor:pointer;display:flex;justify-content:center;gap:8px;align-items:center}
+  button:disabled{opacity:.6;cursor:not-allowed}
+  .spinner{width:16px;height:16px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;display:none}
+  button.loading .spinner{display:block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #toast{position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-80px);background:#16a34a;padding:14px 18px;border-radius:10px;font-size:14px;font-weight:600;transition:.3s;z-index:99;max-width:90%;text-align:center}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+  #toast.error{background:#dc2626}
+  #preview{width:80px;height:80px;object-fit:cover;border-radius:10px;margin-top:10px;display:none}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<div class="card">
+  <h1>Book a Free Consultation</h1>
+  <p class="sub">Week 4 Task - Forms, Validation & Real User Feedback</p>
+
+  <form id="myForm" novalidate>
+    <label>Full Name *</label>
+    <input type="text" id="name" placeholder="e.g. Ahmed Khan">
+    <div class="err" id="err-name">Please enter your full name (at least 3 characters).</div>
+
+    <div class="row">
+      <div>
+        <label>Email *</label>
+        <input type="email" id="email" placeholder="you@email.com">
+        <div class="err" id="err-email">Please enter a valid email address.</div>
+      </div>
+      <div>
+        <label>Phone *</label>
+        <input type="tel" id="phone" placeholder="03XX-XXXXXXX">
+        <div class="err" id="err-phone">Enter valid 11-digit phone, e.g. 03001234567</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Preferred Date *</label>
+        <input type="date" id="date">
+        <div class="err" id="err-date">Please select a future date.</div>
+      </div>
+      <div>
+        <label>Service Needed *</label>
+        <select id="service">
+          <option value="">Select a service...</option>
+          <option value="web">Web Development</option>
+          <option value="design">UI/UX Design</option>
+          <option value="seo">SEO / Marketing</option>
+          <option value="other">Other</option>
+        </select>
+        <div class="err" id="err-service">Please select a service.</div>
+      </div>
+    </div>
+
+    <label>Upload Image / File *</label>
+    <input type="file" id="file" accept="image/*,.pdf">
+    <div class="hint">Only JPG, PNG or PDF, max 2MB</div>
+    <div class="err" id="err-file">Please upload an image or PDF under 2MB.</div>
+    <img id="preview" alt="preview">
+
+    <label>Your Message *</label>
+    <textarea id="message" rows="4" placeholder="Tell us about your project..."></textarea>
+    <div class="err" id="err-message">Message must be at least 20 characters.</div>
+
+    <div class="check">
+      <input type="checkbox" id="terms">
+      <span>I agree to be contacted about my request *</span>
+    </div>
+    <div class="err" id="err-terms">You must agree to continue.</div>
+
+    <button type="submit" id="submitBtn"><span class="spinner"></span><span id="btnText">Submit Form</span></button>
+  </form>
+</div>
+
+<script>
+const form = document.getElementById('myForm');
+const toast = document.getElementById('toast');
+const btn = document.getElementById('submitBtn');
+const btnText = document.getElementById('btnText');
+
+function showToast(msg, isError=false){
+  toast.textContent = msg;
+  toast.className = isError ? 'show error' : 'show';
+  setTimeout(()=> toast.className = '', 4000);
+}
+function setErr(id, show){
+  document.getElementById('err-'+id).classList.toggle('show', show);
+  const el = document.getElementById(id);
+  if(el) el.classList.toggle('error', show);
+  return !show;
+}
+function validate(){
+  let valid = true;
+  const name = document.getElementById('name').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const phone = document.getElementById('phone').value.replace(/[^0-9]/g,'');
+  const dateVal = document.getElementById('date').value;
+  const service = document.getElementById('service').value;
+  const file = document.getElementById('file').files[0];
+  const message = document.getElementById('message').value.trim();
+  const terms = document.getElementById('terms').checked;
+
+  valid = setErr('name', name.length < 3) && valid;
+  valid = setErr('email', !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) && valid;
+  valid = setErr('phone', phone.length !== 11) && valid;
+  valid = setErr('date', !dateVal || new Date(dateVal) < new Date(new Date().toDateString())) && valid;
+  valid = setErr('service', !service) && valid;
+  valid = setErr('file', !file || file.size > 2*1024*1024) && valid;
+  valid = setErr('message', message.length < 20) && valid;
+  valid = setErr('terms', !terms) && valid;
+  return valid;
+}
+
+// Live validation on blur
+['name','email','phone','date','service','message'].forEach(id=>{
+  document.getElementById(id).addEventListener('blur', validate);
+});
+
+// Image preview
+document.getElementById('file').addEventListener('change', e=>{
+  const f = e.target.files[0];
+  if(f && f.type.startsWith('image/')){
+    const url = URL.createObjectURL(f);
+    const img = document.getElementById('preview');
+    img.src = url; img.style.display='block';
+  }
+});
+
+form.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const isValid = validate();
+  if(!isValid){
+    showToast('❌ Please fix the highlighted errors', true);
+    return;
+  }
+  // Disable + loading
+  btn.disabled = true;
+  btn.classList.add('loading');
+  btnText.textContent = 'Submitting...';
+
+  // Simulate API request
+  await new Promise(r=>setTimeout(r, 2000));
+
+  btn.disabled = false;
+  btn.classList.remove('loading');
+  btnText.textContent = 'Submit Form';
+  showToast('✅ Success! Your form was submitted.');
+  form.reset();
+  document.getElementById('preview').style.display='none';
+});
+</script>
+</body>
+</html>
